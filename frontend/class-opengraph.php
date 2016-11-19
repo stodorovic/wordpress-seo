@@ -114,36 +114,33 @@ class WPSEO_OpenGraph {
 	 * @return string
 	 */
 	public function add_opengraph_namespace( $input ) {
-		$namespaces = array(
-			'og: http://ogp.me/ns#',
-		);
+		$prefixes['og'] = 'http://ogp.me/ns#';
+
 		if ( $this->options['fbadminapp'] != 0 || ( is_array( $this->options['fb_admins'] ) && $this->options['fb_admins'] !== array() ) ) {
-			$namespaces[] = 'fb: http://ogp.me/ns/fb#';
+			$prefixes['fb'] = 'http://ogp.me/ns/fb#';
 		}
 
-		/**
-		 * Allow for adding additional namespaces to the <html> prefix attributes.
-		 *
-		 * @since 3.9.0
-		 *
-		 * @param array $namespaces Currently registered namespaces which are to be
-		 *                          added to the prefix attribute.
-		 *                          Namespaces are strings and have the following syntax:
-		 *                          ns: http://url.to.namespace/definition
-		 */
-		$namespaces       = apply_filters( 'wpseo_html_namespaces', $namespaces );
-		$namespace_string = implode( ' ', array_unique( $namespaces ) );
-
-		if ( strpos( $input, ' prefix=' ) !== false ) {
-			$regex   = '`prefix=([\'"])(.+?)\1`';
-			$replace = 'prefix="$2 ' . $namespace_string . '"';
-			$input   = preg_replace( $regex, $replace, $input );
-		}
-		else {
-			$input .= ' prefix="' . $namespace_string . '"';
+		if ( is_singular() && ! is_front_page() ) {
+			$prefixes['article'] = 'http://ogp.me/ns/article#';
 		}
 
-		return $input;
+		//Make prefix string and exclude existing prefixes
+		$prefix_str = '';
+		foreach ( $prefixes as $key => $val ) {
+			if ( strpos( $input, $val ) === false )
+				$prefix_str .= $key . ': ' . $val . ' ';
+		}
+		
+		if ( empty( $prefix_str ) ) {
+			return $input;
+		}
+
+		if ( strpos( $input, 'prefix' ) !== false ) {
+			// Append prefixes at the end
+			return preg_replace( '`(prefix\s*=\s*[\'"][^\'"]*)`i', '${1} ' . trim( $prefix_str ), $input );
+		}
+
+		return $input . ' prefix="' . trim( $prefix_str ) . '"';
 	}
 
 	/**
@@ -1070,7 +1067,7 @@ class WPSEO_OpenGraph_Image {
 
 		// If it's a relative URL, it's relative to the domain, not necessarily to the WordPress install, we
 		// want to preserve domain name and URL scheme (http / https) though.
-		$parsed_url = wp_parse_url( home_url() );
+		$parsed_url = parse_url( home_url() );
 		$img        = $parsed_url['scheme'] . '://' . $parsed_url['host'] . $img;
 
 		return $img;
