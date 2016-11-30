@@ -1057,7 +1057,14 @@ class WPSEO_Frontend {
 
 				// Make sure to use index.php when needed, done after paged == 2 check so the prev links to homepage will not have index.php erroneously.
 				if ( is_front_page() ) {
-					$url = WPSEO_Sitemaps_Router::get_base_url( '' );
+					global $wp_rewrite;
+					
+					if ( $wp_rewrite->using_index_permalinks() ) {
+						$url = WPSEO_Sitemaps_Router::get_base_url( '' );
+					}
+					else {
+						$url = WPSEO_Utils::home_url();
+					}
 				}
 
 				if ( $paged > 2 ) {
